@@ -1,0 +1,94 @@
+SOC LAB: BRUTE FORCE ATTACK DECTECTION ON SSH
+1.Objective
+This project simulates a brute-force attack against an SSH service and demonstrates how a SOC analyst detects and responds to the attack using Linux log analysis.
+
+2.Environment
+-Target system: Ubuntu (SSH server enabled)
+-Attacker system: Kali Linux (Docker container)
+-Attack tool: Hydra
+-Log source: /var/log/auth.log
+
+3.Attack simulation
+A brute-force attack was launched from the attacker machine against the SSH service on the target system.
+Command used:
+</> Bash
+hydra -l testuser -P passwords.txt ssh://192.168.0.55 -t 4 -V
+Explanation
+-l testuser; target username
+-P passwords.txt; password list used
+ssh://192.168.0.55; target IP
+-t 4; parallel attempts
+-V; verbose output
+The attack generated multiple failed login attempts within a short period, simulating an automated password guessing attack.
+
+4.Log analysis
+Failed login attempts were extracted using:
+</> Bash
+sudo grep "Failed password" /var/log/auth.log
+
+Total failed attempts:
+</> Bash
+sudo grep "Failed password" /var/log/auth.log | wc -l
+Result: 12
+
+Attacker IP identification:
+</> Bash 
+sudo grep "Failed password" /var/log/auth.log | awk '{print $11}' | sort | uniq -c | sort -nr
+Result:
+Attacker IP: 172.17.0.2
+Number of attempts: 12
+
+Check for successful login:
+</> Bash
+sudo grep "Accepted password" /var/log/auth.log
+Result:
+2026-04-09T10:33:09.676721+03:00 hp-pavilion sudo:     shem : TTY=pts/1 ; PWD=/home/shem ; USER=root ; COMMAND=/usr/bin/grep 'Accepted password' /var/log/auth.log
+
+5.Detection
+The activity was identified as a brute-force based on the following indicators:
+-High number of failed login attempts
+-Repeated attempts targeting a single user account (testuser)
+-All attempts originating from a single IP address
+-Rapid succession of login attempts indicating automation
+These indicators confirm an attempt to gain unauthorized access using password guessing techniques.
+
+6.Response
+To mitigate the attack, the following actions were taken:
+i.Block the attacker IP:
+</> Bash
+sudo ufw deny from 172.17.0.2
+ii.Secure user account
+</> Bash
+sudo passwd testuser
+iii.Stop SSH service temporarily
+</> Bash
+sudo systemctl stop ssh
+
+7.Detection script
+A simple script was created to identify top attackign IPs:
+</> Bash
+#!/bin/bash
+echo "Top attacking IPs:"
+grep "Failed password" /var/log/auth.log | awk '{print $11}' | sort | uniq -c | sort -nr | head
+
+8.Conclusion
+This lab demonstrated how brute-force attacks can be detected through log analysis. By examining authentication logs, it was possible to identify attack patterns, isolate the attacker's IP address and take immediate response actions.
+This project reflects real-world SOC analyst responsibilities, including monitoring logs, identifying threats ad responding to security incidents.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
